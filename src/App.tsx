@@ -1,4 +1,5 @@
 import { useEffect, useState, type CSSProperties, type FormEvent } from 'react';
+import styles from './index.css?inline';
 import {
   ArrowRight,
   ArrowUpRight,
@@ -19,8 +20,9 @@ import {
   Mail,
   Menu,
   MousePointerClick,
-  ShieldCheck,
+   ShieldCheck,
   Sparkles,
+  Users,
   Wallet,
   X,
   Zap,
