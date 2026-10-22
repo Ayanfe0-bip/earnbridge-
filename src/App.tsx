@@ -1169,19 +1169,19 @@ function App() {
               fontWeight: 700,
             }}
           >
+          
+                    <label
+            htmlFor="earnbridge-email"
+            style={{
+              display: 'block',
+              marginBottom: 7,
+              color: '#33234b',
+              fontSize: 12,
+              fontWeight: 700,
+            }}
+          >
             Email address
-          <label
-htmlFor="earnbridge-email"
-style={{
-display: 'block',
-marginBottom: 7,
-color: '#33234b',
-fontSize: 12,
-fontWeight: 700,
-}}
->
-Email address
-</label>
+          </label>
 
 <div style={{ position: 'relative', marginBottom: 17 }}>
   <Mail
