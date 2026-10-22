@@ -1168,9 +1168,7 @@ function App() {
               fontSize: 12,
               fontWeight: 700,
             }}
-          >
-          
-                    <label
+                    <label>
             htmlFor="earnbridge-email"
             style={{
               display: 'block',
@@ -1182,7 +1180,6 @@ function App() {
           >
             Email address
           </label>
-
 <div style={{ position: 'relative', marginBottom: 17 }}>
   <Mail
     size={18}
