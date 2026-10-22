@@ -1,12 +1,9 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import {
   ArrowRight,
-  ArrowUpRight,
   BadgeCheck,
   BriefcaseBusiness,
   CheckCircle2,
-  ChevronDown,
-  CircleDollarSign,
   ClipboardCheck,
   Eye,
   EyeOff,
@@ -34,60 +31,31 @@ const categories = [
     icon: ClipboardCheck,
     title: 'Microtasks',
     description: 'Explore small digital tasks and simple online work.',
-    color: 'purple',
   },
   {
     icon: Globe2,
     title: 'Online Surveys',
-    description: 'Discover research surveys when you meet their eligibility requirements.',
-    color: 'blue',
+    description: 'Discover surveys and check their eligibility requirements.',
   },
   {
     icon: HeartHandshake,
     title: 'Affiliate Marketing',
-    description: 'Learn how approved referral programmes work.',
-    color: 'gold',
+    description: 'Learn about referral programmes and their requirements.',
   },
   {
     icon: MousePointerClick,
     title: 'Website Testing',
     description: 'Explore website testing and feedback opportunities.',
-    color: 'pink',
   },
   {
     icon: BriefcaseBusiness,
     title: 'Freelance Skills',
     description: 'Explore writing, design, research, and digital skills.',
-    color: 'green',
   },
   {
     icon: GraduationCap,
     title: 'Learn & Grow',
     description: 'Build useful skills for future opportunities.',
-    color: 'orange',
-  },
-];
-
-const faqs = [
-  {
-    question: 'What is EarnBridge?',
-    answer:
-      'EarnBridge is being developed to help people discover digital work, microtasks, and skill-building opportunities.',
-  },
-  {
-    question: 'Is registration free?',
-    answer:
-      'EarnBridge is designed to be free to join. Never pay a registration fee to someone promising guaranteed earnings.',
-  },
-  {
-    question: 'Can I earn money immediately?',
-    answer:
-      'Earnings are not guaranteed. Opportunities and payment arrangements must be verified before rewards can be promised.',
-  },
-  {
-    question: 'Can people outside Nigeria join?',
-    answer:
-      'EarnBridge has an international vision, but available opportunities and payment options may vary by country.',
   },
 ];
 
@@ -99,7 +67,6 @@ function App() {
   const [authOpen, setAuthOpen] = useState(false);
   const [authMode, setAuthMode] = useState<AuthMode>('signup');
   const [menuOpen, setMenuOpen] = useState(false);
-  const [openFaq, setOpenFaq] = useState<number | null>(0);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -111,17 +78,47 @@ function App() {
   useEffect(() => {
     let mounted = true;
 
-    supabase.auth.getSession().then(({ data, error: sessionError }) => {
+    const checkSession = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const emailConfirmed = params.get('auth') === 'confirmed';
+
+      if (emailConfirmed) {
+        // Remove the confirmation marker from the visible URL.
+        window.history.replaceState(
+          {},
+          document.title,
+          window.location.pathname,
+        );
+
+        // Open login after confirmation, even if Supabase created a session.
+        await supabase.auth.signOut();
+
+        if (mounted) {
+          setUser(null);
+          setAuthMode('login');
+          setAuthOpen(true);
+          setSuccess('');
+          setError('');
+          setAuthReady(true);
+        }
+
+        return;
+      }
+
+      const { data, error: sessionError } =
+        await supabase.auth.getSession();
+
       if (!mounted) return;
 
       if (sessionError) {
         setError('We could not check your session. Please refresh the page.');
-      } else {
-        setUser(data.session?.user ?? null);
       }
 
+      setUser(data.session?.user ?? null);
       setAuthReady(true);
-    });
+    };
+
+    void checkSession();
 
     const {
       data: { subscription },
@@ -156,11 +153,6 @@ function App() {
     setSuccess('');
   };
 
-  const scrollTo = (id: string) => {
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
-    setMenuOpen(false);
-  };
-
   const handleAuth = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError('');
@@ -182,13 +174,14 @@ function App() {
 
     try {
       if (authMode === 'signup') {
-        const { data, error: signupError } = await supabase.auth.signUp({
-          email: cleanEmail,
-          password,
-          options: {
-            emailRedirectTo: window.location.origin,
-          },
-        });
+        const { data, error: signupError } =
+          await supabase.auth.signUp({
+            email: cleanEmail,
+            password,
+            options: {
+              emailRedirectTo: `${window.location.origin}/?auth=confirmed`,
+            },
+          });
 
         if (signupError) throw signupError;
 
@@ -198,7 +191,7 @@ function App() {
           setPassword('');
         } else {
           setSuccess(
-            'Your registration request was received. Check your email for a confirmation link before signing in.',
+            'Account registration started! Check your inbox and confirm your email. After confirmation, you can log in here.',
           );
           setPassword('');
         }
@@ -214,6 +207,7 @@ function App() {
         setUser(data.user);
         setAuthOpen(false);
         setPassword('');
+        setSuccess('');
       }
     } catch (err: unknown) {
       const message =
@@ -221,27 +215,25 @@ function App() {
           ? err.message
           : 'Something went wrong. Please try again.';
 
-      if (
-        message.toLowerCase().includes('email not confirmed') ||
-        message.toLowerCase().includes('email_not_confirmed')
-      ) {
+      const lowerMessage = message.toLowerCase();
+
+      if (lowerMessage.includes('email not confirmed')) {
         setError(
-          'Your email has not been confirmed yet. Open the confirmation link in your inbox, then sign in.',
+          'Your email is not confirmed yet. Open the confirmation link in your inbox first.',
         );
-      } else if (
-        message.toLowerCase().includes('invalid login credentials')
-      ) {
+      } else if (lowerMessage.includes('invalid login credentials')) {
         setError('Incorrect email or password. Please check and try again.');
-      } else if (
-        message.toLowerCase().includes('user already registered')
-      ) {
+      } else if (lowerMessage.includes('user already registered')) {
         setError(
-          'An account may already exist with this email. Try logging in instead.',
+          'An account may already exist with this email. Try logging in.',
         );
       } else if (
-        message.toLowerCase().includes('password should be at least')
+        lowerMessage.includes('redirect') ||
+        lowerMessage.includes('not allowed')
       ) {
-        setError('Please choose a password with at least 8 characters.');
+        setError(
+          'The confirmation redirect may not be allowed in Supabase. Check Authentication URL Configuration.',
+        );
       } else {
         setError(message);
       }
@@ -252,6 +244,7 @@ function App() {
 
   const handleLogout = async () => {
     setError('');
+
     const { error: logoutError } = await supabase.auth.signOut();
 
     if (logoutError) {
@@ -260,37 +253,392 @@ function App() {
     }
 
     setUser(null);
-    setSuccess('You have signed out successfully.');
-    window.setTimeout(() => setSuccess(''), 4000);
+    setAuthOpen(false);
+    setSuccess('');
   };
 
-  const buttonStyle = {
+  const scrollTo = (id: string) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+    setMenuOpen(false);
+  };
+
+  const primaryButton: React.CSSProperties = {
     width: '100%',
-    minHeight: '48px',
+    minHeight: 48,
     padding: '12px 16px',
-    border: 'none',
-    borderRadius: '12px',
-    color: '#ffffff',
+    border: 0,
+    borderRadius: 12,
+    color: '#fff',
     background: 'linear-gradient(120deg, #6d28d9, #8051d9)',
     fontWeight: 700,
-    fontSize: '14px',
+    fontSize: 14,
     cursor: busy ? 'wait' : 'pointer',
     opacity: busy ? 0.7 : 1,
-  } as const;
-
-  const inputStyle = {
-    width: '100%',
-    minHeight: '48px',
-    boxSizing: 'border-box' as const,
-    padding: '12px 14px',
-    border: '1px solid #e5def2',
-    borderRadius: '11px',
-    background: '#ffffff',
-    color: '#24163d',
-    fontSize: '14px',
-    outlineColor: '#8051d9',
   };
 
+  const inputStyle: React.CSSProperties = {
+    width: '100%',
+    minHeight: 48,
+    boxSizing: 'border-box',
+    padding: '12px 14px',
+    border: '1px solid #e5def2',
+    borderRadius: 11,
+    background: '#fff',
+    color: '#24163d',
+    fontSize: 14,
+  };
+
+  // Signed-in members see their dashboard instead of the public landing page.
+  if (user) {
+    return (
+      <div
+        style={{
+          minHeight: '100vh',
+          background: '#f8f6fc',
+          color: '#24163d',
+          fontFamily: 'inherit',
+        }}
+      >
+        <header
+          style={{
+            background: '#fff',
+            borderBottom: '1px solid #ece6f5',
+          }}
+        >
+          <div
+            style={{
+              maxWidth: 1180,
+              margin: '0 auto',
+              padding: '14px 20px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: 12,
+              flexWrap: 'wrap',
+            }}
+          >
+            <a
+              href="/"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                color: '#24163d',
+                textDecoration: 'none',
+              }}
+            >
+              <span
+                style={{
+                  display: 'grid',
+                  placeItems: 'center',
+                  width: 42,
+                  height: 42,
+                  borderRadius: 13,
+                  background: '#f1eafe',
+                  color: '#6d28d9',
+                }}
+              >
+                <Globe2 size={24} />
+              </span>
+              <span>
+                <strong style={{ display: 'block', fontSize: 20 }}>
+                  Earn<span style={{ color: '#6d28d9' }}>Bridge</span>
+                </strong>
+                <small style={{ color: '#756b88' }}>
+                  Earn Small. Grow Together.
+                </small>
+              </span>
+            </a>
+
+            <button
+              onClick={handleLogout}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+                border: 0,
+                borderRadius: 11,
+                padding: '12px 16px',
+                background: '#6d28d9',
+                color: '#fff',
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              <LogOut size={16} /> Sign out
+            </button>
+          </div>
+        </header>
+
+        <main
+          style={{
+            maxWidth: 1180,
+            margin: '0 auto',
+            padding: '28px 20px 50px',
+          }}
+        >
+          <section
+            style={{
+              padding: '28px 24px',
+              borderRadius: 22,
+              background: 'linear-gradient(120deg, #5b21b6, #8051d9)',
+              color: '#fff',
+              marginBottom: 24,
+            }}
+          >
+            <span
+              style={{
+                fontSize: 12,
+                fontWeight: 800,
+                letterSpacing: 1,
+              }}
+            >
+              YOUR EARNBRIDGE SPACE
+            </span>
+            <h1
+              style={{
+                fontSize: 'clamp(26px, 5vw, 38px)',
+                margin: '10px 0',
+              }}
+            >
+              Welcome to your dashboard!
+            </h1>
+            <p style={{ margin: 0, lineHeight: 1.8, overflowWrap: 'anywhere' }}>
+              You're signed in as {user.email ?? 'an EarnBridge member'}.
+              Explore opportunities and build your next steps at your own pace.
+            </p>
+          </section>
+
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))',
+              gap: 16,
+              marginBottom: 32,
+            }}
+          >
+            {[
+              {
+                label: 'Opportunity categories',
+                value: '6',
+                note: 'Explore areas of interest',
+                icon: Sparkles,
+              },
+              {
+                label: 'Saved opportunities',
+                value: '0',
+                note: 'Saving tools coming soon',
+                icon: BadgeCheck,
+              },
+              {
+                label: 'Completed activities',
+                value: '0',
+                note: 'Activity tracking coming soon',
+                icon: ClipboardCheck,
+              },
+              {
+                label: 'Verified earnings',
+                value: '₦0',
+                note: 'No earnings recorded yet',
+                icon: Wallet,
+              },
+            ].map((item) => {
+              const Icon = item.icon;
+
+              return (
+                <article
+                  key={item.label}
+                  style={{
+                    padding: 20,
+                    borderRadius: 18,
+                    background: '#fff',
+                    border: '1px solid #ece6f5',
+                    boxShadow: '0 8px 24px #25104408',
+                  }}
+                >
+                  <span
+                    style={{
+                      display: 'grid',
+                      placeItems: 'center',
+                      width: 42,
+                      height: 42,
+                      borderRadius: 12,
+                      background: '#f1eafe',
+                      color: '#6d28d9',
+                      marginBottom: 15,
+                    }}
+                  >
+                    <Icon size={21} />
+                  </span>
+                  <p
+                    style={{
+                      margin: '0 0 6px',
+                      color: '#756b88',
+                      fontSize: 13,
+                    }}
+                  >
+                    {item.label}
+                  </p>
+                  <strong
+                    style={{
+                      display: 'block',
+                      fontSize: 27,
+                      marginBottom: 7,
+                    }}
+                  >
+                    {item.value}
+                  </strong>
+                  <small style={{ color: '#9186a1', lineHeight: 1.5 }}>
+                    {item.note}
+                  </small>
+                </article>
+              );
+            })}
+          </div>
+
+          <section style={{ marginBottom: 32 }}>
+            <span
+              style={{
+                color: '#6d28d9',
+                fontSize: 12,
+                fontWeight: 800,
+                letterSpacing: 1,
+              }}
+            >
+              DISCOVER
+            </span>
+            <h2 style={{ margin: '8px 0', fontSize: 26 }}>
+              Explore opportunity categories
+            </h2>
+            <p style={{ color: '#756b88', lineHeight: 1.8 }}>
+              Explore the areas below. These are introductory categories, not
+              verified live job listings. Earnings are not guaranteed.
+            </p>
+
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 290px), 1fr))',
+                gap: 16,
+              }}
+            >
+              {categories.map((category) => {
+                const Icon = category.icon;
+
+                return (
+                  <article
+                    key={category.title}
+                    style={{
+                      padding: 20,
+                      borderRadius: 18,
+                      background: '#fff',
+                      border: '1px solid #ece6f5',
+                    }}
+                  >
+                    <span
+                      style={{
+                        display: 'grid',
+                        placeItems: 'center',
+                        width: 44,
+                        height: 44,
+                        borderRadius: 13,
+                        background: '#f1eafe',
+                        color: '#6d28d9',
+                        marginBottom: 14,
+                      }}
+                    >
+                      <Icon size={22} />
+                    </span>
+                    <h3 style={{ margin: '0 0 8px', fontSize: 18 }}>
+                      {category.title}
+                    </h3>
+                    <p
+                      style={{
+                        margin: '0 0 15px',
+                        color: '#756b88',
+                        lineHeight: 1.7,
+                        fontSize: 14,
+                      }}
+                    >
+                      {category.description}
+                    </p>
+                    <span
+                      style={{
+                        display: 'inline-block',
+                        padding: '6px 10px',
+                        borderRadius: 8,
+                        background: '#fff7ed',
+                        color: '#9a3412',
+                        fontSize: 11,
+                        fontWeight: 800,
+                      }}
+                    >
+                      COMING SOON
+                    </span>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+
+          <section
+            style={{
+              padding: 22,
+              borderRadius: 18,
+              background: '#fff',
+              border: '1px solid #ece6f5',
+            }}
+          >
+            <h2 style={{ margin: '0 0 8px', fontSize: 21 }}>
+              Account information
+            </h2>
+            <p
+              style={{
+                color: '#756b88',
+                lineHeight: 1.8,
+                overflowWrap: 'anywhere',
+              }}
+            >
+              Signed-in email:{' '}
+              <strong style={{ color: '#24163d' }}>
+                {user.email ?? 'Not available'}
+              </strong>
+            </p>
+            <p
+              style={{
+                color: '#756b88',
+                fontSize: 13,
+                lineHeight: 1.8,
+                marginBottom: 0,
+              }}
+            >
+              Profile editing, saved opportunities, and activity history will
+              be added in future updates.
+            </p>
+          </section>
+
+          <footer
+            style={{
+              textAlign: 'center',
+              marginTop: 30,
+              color: '#9186a1',
+              fontSize: 12,
+              lineHeight: 1.8,
+            }}
+          >
+            © {new Date().getFullYear()} EarnBridge
+            <br />
+            Created by Ayanfe Innovation Labs Limited
+            <br />
+            Earn Small. Grow Together.
+          </footer>
+        </main>
+      </div>
+    );
+  }
+
+  // Public landing page for visitors who are not signed in.
   return (
     <div className="app-shell">
       <div className="announcement">
@@ -301,9 +649,9 @@ function App() {
 
       <header className="site-header">
         <div className="container nav-inner">
-          <a className="brand" href="#home" aria-label="EarnBridge home">
+          <a className="brand" href="#home">
             <span className="brand-mark">
-              <Globe2 size={25} strokeWidth={2.4} />
+              <Globe2 size={25} />
               <span className="brand-sparkle">✦</span>
             </span>
             <span className="brand-copy">
@@ -322,53 +670,27 @@ function App() {
             <a href="#about" onClick={() => setMenuOpen(false)}>
               About us
             </a>
-            <a href="#faq" onClick={() => setMenuOpen(false)}>
-              FAQs
-            </a>
             <button
               className="mobile-nav-action"
-              onClick={() => openAuth(user ? 'login' : 'signup')}
+              onClick={() => openAuth('signup')}
             >
-              {user ? 'Your account' : 'Get started'} <ArrowRight size={16} />
+              Get started <ArrowRight size={16} />
             </button>
           </nav>
 
           <div className="nav-actions">
-            {user ? (
-              <>
-                <span
-                  title={user.email ?? 'Signed-in account'}
-                  style={{
-                    maxWidth: '130px',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                    fontSize: '11px',
-                    color: '#6d28d9',
-                  }}
-                >
-                  {user.email}
-                </span>
-                <button className="login-button" onClick={handleLogout}>
-                  <LogOut size={15} /> Sign out
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  className="login-button"
-                  onClick={() => openAuth('login')}
-                >
-                  Log in
-                </button>
-                <button
-                  className="primary-button nav-cta"
-                  onClick={() => openAuth('signup')}
-                >
-                  Get started <ArrowUpRight size={16} />
-                </button>
-              </>
-            )}
+            <button
+              className="login-button"
+              onClick={() => openAuth('login')}
+            >
+              Log in
+            </button>
+            <button
+              className="primary-button nav-cta"
+              onClick={() => openAuth('signup')}
+            >
+              Get started <ArrowRight size={16} />
+            </button>
           </div>
 
           <button
@@ -382,7 +704,7 @@ function App() {
       </header>
 
       <main>
-        <section className="hero" id="home">
+                <section className="hero" id="home">
           <div className="hero-decoration hero-decoration-one" />
           <div className="hero-decoration hero-decoration-two" />
 
@@ -624,7 +946,7 @@ function App() {
                 <div className="about-art-inner">
                   <Globe2 size={72} strokeWidth={1.4} />
                   <span className="about-art-star">✦</span>
-                  </div>
+                </div>
               </div>
               <div className="about-label about-label-top">
                 <ShieldCheck size={17} /> Built around informed choices
@@ -935,7 +1257,7 @@ function App() {
               </div>
 
               <h2
-                id="auth-title"
+                              id="auth-title"
                 style={{
                   margin: '0 0 9px',
                   color: '#24163d',
