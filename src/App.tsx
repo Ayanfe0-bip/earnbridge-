@@ -1171,14 +1171,17 @@ function App() {
           >
             Email address
           <label
-  htmlFor="earnbridge-email"
-  style={{
-    display: 'block',
-    marginBottom: 7,
-    color: '#33234b',
-    fontSize: 12,
-    fontWeight: 700,
-  }}
+htmlFor="earnbridge-email"
+style={{
+display: 'block',
+marginBottom: 7,
+color: '#33234b',
+fontSize: 12,
+fontWeight: 700,
+}}
+>
+Email address
+</label>
 
 <div style={{ position: 'relative', marginBottom: 17 }}>
   <Mail
