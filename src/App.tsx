@@ -1170,6 +1170,230 @@ function App() {
             }}
           >
             Email address
-          </label>
+          <label
+  htmlFor="earnbridge-email"
+  style={{
+    display: 'block',
+    marginBottom: 7,
+    color: '#33234b',
+    fontSize: 12,
+    fontWeight: 700,
+  }}
+>
+  Email address
+</label>
 
-        
+<div style={{ position: 'relative', marginBottom: 17 }}>
+  <Mail
+    size={18}
+    style={{
+      position: 'absolute',
+      top: 15,
+      left: 13,
+      color: '#8b7aa5',
+    }}
+  />
+
+  <input
+    id="earnbridge-email"
+    type="email"
+    autoComplete="email"
+    required
+    maxLength={254}
+    value={email}
+    onChange={(event) => setEmail(event.target.value)}
+    placeholder="you@example.com"
+    style={{ ...inputStyle, paddingLeft: 41 }}
+  />
+</div>
+
+<label
+  htmlFor="earnbridge-password"
+  style={{
+    display: 'block',
+    marginBottom: 7,
+    color: '#33234b',
+    fontSize: 12,
+    fontWeight: 700,
+  }}
+>
+  Password
+</label>
+
+<div style={{ position: 'relative', marginBottom: 10 }}>
+  <LockKeyhole
+    size={18}
+    style={{
+      position: 'absolute',
+      top: 15,
+      left: 13,
+      color: '#8b7aa5',
+    }}
+  />
+
+  <input
+    id="earnbridge-password"
+    type={showPassword ? 'text' : 'password'}
+    autoComplete={
+      authMode === 'signup' ? 'new-password' : 'current-password'
+    }
+    required
+    minLength={8}
+    value={password}
+    onChange={(event) => setPassword(event.target.value)}
+    placeholder="At least 8 characters"
+    style={{
+      ...inputStyle,
+      paddingLeft: 41,
+      paddingRight: 45,
+    }}
+  />
+
+  <button
+    type="button"
+    onClick={() => setShowPassword(!showPassword)}
+    aria-label={showPassword ? 'Hide password' : 'Show password'}
+    style={{
+      position: 'absolute',
+      top: 7,
+      right: 7,
+      display: 'grid',
+      width: 34,
+      height: 34,
+      placeItems: 'center',
+      border: 0,
+      borderRadius: 8,
+      background: 'transparent',
+      color: '#78688e',
+      cursor: 'pointer',
+    }}
+  >
+    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+  </button>
+</div>
+
+<p
+  style={{
+    margin: '0 0 20px',
+    color: '#82778f',
+    fontSize: 11,
+    lineHeight: 1.7,
+  }}
+>
+  Use at least 8 characters. Never share your password with anyone.
+</p>
+
+<button type="submit" disabled={busy} style={buttonStyle}>
+  {busy ? (
+    <>
+      <LoaderCircle
+        size={17}
+        style={{
+          display: 'inline',
+          verticalAlign: 'middle',
+          marginRight: 8,
+          animation: 'spin 1s linear infinite',
+        }}
+      />
+      Please wait...
+    </>
+  ) : authMode === 'signup' ? (
+    'Create my account'
+  ) : (
+    'Sign in securely'
+  )}
+</button>
+</form>
+)}
+
+{success && authMode === 'signup' && (
+  <button
+    type="button"
+    onClick={() => {
+      setAuthMode('login');
+      setError('');
+      setSuccess('');
+      setPassword('');
+    }}
+    style={buttonStyle}
+  >
+    Continue to sign in
+  </button>
+)}
+
+<div
+  style={{
+    marginTop: 22,
+    paddingTop: 19,
+    borderTop: '1px solid #f0eaf7',
+    textAlign: 'center',
+    color: '#756b88',
+    fontSize: 12,
+  }}
+>
+  {authMode === 'signup'
+    ? 'Already have an account? '
+    : "Don't have an account? "}
+
+  <button
+    type="button"
+    disabled={busy}
+    onClick={() => {
+      setAuthMode(authMode === 'signup' ? 'login' : 'signup');
+      setError('');
+      setSuccess('');
+      setPassword('');
+    }}
+    style={{
+      padding: 0,
+      border: 0,
+      background: 'transparent',
+      color: '#6d28d9',
+      fontSize: 12,
+      fontWeight: 800,
+      cursor: 'pointer',
+    }}
+  >
+    {authMode === 'signup' ? 'Log in' : 'Create account'}
+  </button>
+</div>
+
+<p
+  style={{
+    margin: '18px 0 0',
+    color: '#9186a1',
+    fontSize: 10,
+    lineHeight: 1.7,
+    textAlign: 'center',
+  }}
+>
+  By creating an account, you understand that earnings are not
+  guaranteed and opportunities must be independently verified.
+</p>
+</section>
+</div>
+)}
+
+{!authReady && (
+  <div
+    style={{
+      position: 'fixed',
+      left: 12,
+      bottom: 12,
+      zIndex: 80,
+      padding: '8px 12px',
+      border: '1px solid #e9e0f8',
+      borderRadius: 10,
+      background: '#ffffff',
+      color: '#6d28d9',
+      fontSize: 11,
+    }}
+  >
+    Checking account session...
+  </div>
+)}
+</div>
+);
+}
+
+export default App
