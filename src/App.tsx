@@ -1179,9 +1179,6 @@ function App() {
     fontSize: 12,
     fontWeight: 700,
   }}
->
-  Email address
-</label>
 
 <div style={{ position: 'relative', marginBottom: 17 }}>
   <Mail
